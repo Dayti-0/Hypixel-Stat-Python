@@ -21,85 +21,83 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 app.layout = dbc.Container([
     dcc.Store(id='figures-store'),
-    dbc.Row([
-        dbc.Col([
-            html.H1("Tableau de bord des statistiques Hypixel", className="text-center mb-4")
-        ], width=12)
-    ]),
+    dcc.Store(id='mode-store', data='bedwars'),
+    html.Div(
+        id='side-menu',
+        children=[
+            html.Div('Bedwars Stats', id='bedwars-item', className='menu-item', n_clicks=0),
+            html.Div('Bedwars 4v4 Stats', id='bedwars_4v4-item', className='menu-item', n_clicks=0),
+            html.Div('Skywars Stats', id='skywars-item', className='menu-item', n_clicks=0),
+            html.Div('Duels Stats', id='duels-item', className='menu-item', n_clicks=0),
+            html.Div('Sumo Duel Stats', id='sumo_duel-item', className='menu-item', n_clicks=0),
+            html.Div('Classic Duel Stats', id='classic_duel-item', className='menu-item', n_clicks=0),
+            html.Div('Statistiques Combinées', id='combined-item', className='menu-item', n_clicks=0),
+        ],
+    ),
+    html.Div([
+        dbc.Row([
+            dbc.Col([
+                html.H1("Tableau de bord des statistiques Hypixel", className="text-center mb-4")
+            ], width=12)
+        ]),
 
-    dbc.Row([
-        dbc.Col([
-            dcc.Dropdown(
-                id='mode-dropdown',
-                options=[
-                    {'label': 'Bedwars Stats', 'value': 'bedwars'},
-                    {'label': 'Bedwars 4v4 Stats', 'value': 'bedwars_4v4'},
-                    {'label': 'Skywars Stats', 'value': 'skywars'},
-                    {'label': 'Duels Stats', 'value': 'duels'},
-                    {'label': 'Sumo Duel Stats', 'value': 'sumo_duel'},
-                    {'label': 'Classic Duel Stats', 'value': 'classic_duel'},
-                    {'label': 'Statistiques Combinées', 'value': 'combined'},
-                ],
-                value='bedwars',
-                clearable=False,
-                className='mb-3'
-            )
-        ], className='sidebar'),
-        dbc.Col([
-            dcc.Graph(id='stats-graph'),
-            html.Div(id='winstreak-info', className='mt-4')
-        ], className='content')
-    ]),
+        dbc.Row([
+            dbc.Col([
+                dcc.Graph(id='stats-graph'),
+                html.Div(id='winstreak-info', className='mt-4')
+            ], width=12)
+        ]),
 
-    dbc.Row([
-        dbc.Col([
-            html.Div(
-                [
-                    dbc.Button(
-                        "Paramètres",
-                        id="collapse-button",
-                        color="primary",
-                        n_clicks=0,
-                        className="mb-3",
-                    ),
-                    dbc.Button(
-                        "Obtenir une clé",
-                        id="api-link-button",
-                        href="https://developer.hypixel.net/dashboard",
-                        target="_blank",
-                        color="secondary",
-                        className="mb-3 ms-2",
-                        style={"display": "none"},
-                    ),
-                ],
-                className="d-flex",
-            ),
-            dbc.Collapse(
-                dbc.Card([
-                    dbc.CardBody([
-                        html.Label("Noms d'utilisateurs Minecraft (séparés par des virgules):"),
-                        dcc.Input(id='usernames-input', value='', type='text', className="form-control", style={'marginBottom': '10px'}),
-                        html.Label("Clé API Hypixel:"),
-                        dcc.Input(
-                            id="api-key-input",
-                            value=DEFAULT_API_KEY,
-                            type="text",
-                            className="form-control mb-3",
+        dbc.Row([
+            dbc.Col([
+                html.Div(
+                    [
+                        dbc.Button(
+                            "Paramètres",
+                            id="collapse-button",
+                            color="primary",
+                            n_clicks=0,
+                            className="mb-3",
                         ),
-                        dbc.Button('Obtenir les statistiques', id='fetch-button', color="primary", className="btn-block"),
-                        html.Div(id='result', className="alert alert-info mt-4", style={'display': 'none'}),
-                        dcc.Loading(
-                            id="loading",
-                            type="default",
-                            children=html.Div(id="loading-output")
-                        )
-                    ])
-                ]),
-                id="collapse",
-                is_open=False,
-            )
-        ], width=12)
-    ])
+                        dbc.Button(
+                            "Obtenir une clé",
+                            id="api-link-button",
+                            href="https://developer.hypixel.net/dashboard",
+                            target="_blank",
+                            color="secondary",
+                            className="mb-3 ms-2",
+                            style={"display": "none"},
+                        ),
+                    ],
+                    className="d-flex",
+                ),
+                dbc.Collapse(
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.Label("Noms d'utilisateurs Minecraft (séparés par des virgules):"),
+                            dcc.Input(id='usernames-input', value='', type='text', className="form-control", style={'marginBottom': '10px'}),
+                            html.Label("Clé API Hypixel:"),
+                            dcc.Input(
+                                id="api-key-input",
+                                value=DEFAULT_API_KEY,
+                                type="text",
+                                className="form-control mb-3",
+                            ),
+                            dbc.Button('Obtenir les statistiques', id='fetch-button', color="primary", className="btn-block"),
+                            html.Div(id='result', className="alert alert-info mt-4", style={'display': 'none'}),
+                            dcc.Loading(
+                                id="loading",
+                                type="default",
+                                children=html.Div(id="loading-output")
+                            )
+                        ])
+                    ]),
+                    id="collapse",
+                    is_open=False,
+                )
+            ], width=12)
+        ])
+    ], className='content')
 ], fluid=True)
 
 @app.callback(
@@ -176,8 +174,38 @@ def update_graphs(n_clicks, usernames, api_key):
 
 
 @app.callback(
+    Output('mode-store', 'data'),
+    [
+        Input('bedwars-item', 'n_clicks'),
+        Input('bedwars_4v4-item', 'n_clicks'),
+        Input('skywars-item', 'n_clicks'),
+        Input('duels-item', 'n_clicks'),
+        Input('sumo_duel-item', 'n_clicks'),
+        Input('classic_duel-item', 'n_clicks'),
+        Input('combined-item', 'n_clicks'),
+    ],
+    prevent_initial_call=True
+)
+def update_mode(*args):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+    triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    mapping = {
+        'bedwars-item': 'bedwars',
+        'bedwars_4v4-item': 'bedwars_4v4',
+        'skywars-item': 'skywars',
+        'duels-item': 'duels',
+        'sumo_duel-item': 'sumo_duel',
+        'classic_duel-item': 'classic_duel',
+        'combined-item': 'combined',
+    }
+    return mapping.get(triggered_id, dash.no_update)
+
+
+@app.callback(
     [Output('stats-graph', 'figure'), Output('winstreak-info', 'children')],
-    [Input('mode-dropdown', 'value')],
+    [Input('mode-store', 'data')],
     [State('figures-store', 'data')]
 )
 def display_selected_graph(mode, data):
