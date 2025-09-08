@@ -48,7 +48,7 @@ app.layout = dbc.Container([
         dbc.Col([
             dcc.Graph(id='stats-graph'),
             html.Div(id='winstreak-info', className='mt-4')
-        ])
+        ], className='content')
     ]),
 
     dbc.Row([
