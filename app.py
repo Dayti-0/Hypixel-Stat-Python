@@ -146,10 +146,10 @@ def update_graphs(n_clicks, usernames, api_key):
             players_data[player.get('displayname', username)] = player
     
     if errors:
-        return [dash.no_update] * 10 + ["\n".join(errors), {'display': 'block'}, None]
+        return [dash.no_update] * 9 + ["\n".join(errors), {'display': 'block'}, None]
 
     if not players_data:
-        return [dash.no_update] * 10 + ["Aucune donnée valide trouvée pour les joueurs spécifiés.", {'display': 'block'}, None]
+        return [dash.no_update] * 9 + ["Aucune donnée valide trouvée pour les joueurs spécifiés.", {'display': 'block'}, None]
 
     historical_data = {}
     for username, player in players_data.items():
