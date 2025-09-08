@@ -20,6 +20,7 @@ DEFAULT_API_KEY = os.getenv('HYPIXEL_API_KEY', '')
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 app.layout = dbc.Container([
+    dcc.Store(id='figures-store'),
     dbc.Row([
         dbc.Col([
             html.H1("Tableau de bord des statistiques Hypixel", className="text-center mb-4")
@@ -28,32 +29,26 @@ app.layout = dbc.Container([
 
     dbc.Row([
         dbc.Col([
-            dcc.Tabs(id='tabs', children=[
-                dcc.Tab(label='Bedwars Stats', children=[
-                    dcc.Graph(id='bedwars-graph')
-                ]),
-                dcc.Tab(label='Bedwars 4v4 Stats', children=[
-                    dcc.Graph(id='bedwars-4v4-graph')
-                ]),
-                dcc.Tab(label='Skywars Stats', children=[
-                    dcc.Graph(id='skywars-graph')
-                ]),
-                dcc.Tab(label='Duels Stats', children=[
-                    dcc.Graph(id='duels-graph')
-                ]),
-                dcc.Tab(label='Sumo Duel Stats', children=[
-                    dcc.Graph(id='sumo-duel-graph'),
-                    html.Div(id='sumo-winstreak', className='mt-4')
-                ]),
-                dcc.Tab(label='Classic Duel Stats', children=[
-                    dcc.Graph(id='classic-duel-graph'),
-                    html.Div(id='classic-winstreak', className='mt-4')
-                ]),
-                dcc.Tab(label='Statistiques Combinées', children=[
-                    dcc.Graph(id='combined-graph')
-                ])
-            ], className="custom-tabs-container")
-        ], width=12)
+            dcc.Dropdown(
+                id='mode-dropdown',
+                options=[
+                    {'label': 'Bedwars Stats', 'value': 'bedwars'},
+                    {'label': 'Bedwars 4v4 Stats', 'value': 'bedwars_4v4'},
+                    {'label': 'Skywars Stats', 'value': 'skywars'},
+                    {'label': 'Duels Stats', 'value': 'duels'},
+                    {'label': 'Sumo Duel Stats', 'value': 'sumo_duel'},
+                    {'label': 'Classic Duel Stats', 'value': 'classic_duel'},
+                    {'label': 'Statistiques Combinées', 'value': 'combined'},
+                ],
+                value='bedwars',
+                clearable=False,
+                className='mb-3'
+            )
+        ], className='sidebar'),
+        dbc.Col([
+            dcc.Graph(id='stats-graph'),
+            html.Div(id='winstreak-info', className='mt-4')
+        ])
     ]),
 
     dbc.Row([
@@ -120,15 +115,7 @@ def toggle_collapse(n, is_open):
     return is_open, {"display": "none"}
 
 @app.callback(
-    [Output('bedwars-graph', 'figure'),
-     Output('bedwars-4v4-graph', 'figure'),
-     Output('duels-graph', 'figure'),
-     Output('sumo-duel-graph', 'figure'),
-     Output('classic-duel-graph', 'figure'),
-     Output('skywars-graph', 'figure'),
-     Output('combined-graph', 'figure'),
-     Output('sumo-winstreak', 'children'),
-     Output('classic-winstreak', 'children'),
+    [Output('figures-store', 'data'),
      Output('result', 'children'),
      Output('result', 'style'),
      Output('loading-output', 'children')],
@@ -141,7 +128,7 @@ def update_graphs(n_clicks, usernames, api_key):
         raise PreventUpdate
 
     usernames_list = [username.strip() for username in usernames.split(',') if username.strip()]
-    
+
     players_data = {}
     errors = []
 
@@ -153,12 +140,12 @@ def update_graphs(n_clicks, usernames, api_key):
             errors.append(f"{username}: Aucune donnée trouvée")
         else:
             players_data[player.get('displayname', username)] = player
-    
+
     if errors:
-        return [dash.no_update] * 9 + ["\n".join(errors), {'display': 'block'}, None]
+        return dash.no_update, "\n".join(errors), {'display': 'block'}, None
 
     if not players_data:
-        return [dash.no_update] * 9 + ["Aucune donnée valide trouvée pour les joueurs spécifiés.", {'display': 'block'}, None]
+        return dash.no_update, "Aucune donnée valide trouvée pour les joueurs spécifiés.", {'display': 'block'}, None
 
     historical_data = {}
     for username, player in players_data.items():
@@ -168,8 +155,40 @@ def update_graphs(n_clicks, usernames, api_key):
             historical_data[username] = history['data']
 
     fig_bedwars, fig_bedwars_4v4, fig_duels, fig_sumo_duel, fig_classic_duel, fig_skywars, fig_combined, winstreaks_text = create_figures(players_data, historical_data)
-    
+
     # Mise à jour du texte des winstreaks avec le format désiré
     sumo_winstreak_text = "Meilleur Winstreak Sumo : " + " --- ".join([f"{user} : {winstreaks_text[user]['sumo']}" for user in winstreaks_text])
     classic_winstreak_text = "Meilleur Winstreak Classic : " + " --- ".join([f"{user} : {winstreaks_text[user]['classic']}" for user in winstreaks_text])
-    return fig_bedwars, fig_bedwars_4v4, fig_duels, fig_sumo_duel, fig_classic_duel, fig_skywars, fig_combined, sumo_winstreak_text, classic_winstreak_text, "Données récupérées et graphiques mis à jour.", {'display': 'block'}, None
+
+    figures_data = {
+        'bedwars': fig_bedwars,
+        'bedwars_4v4': fig_bedwars_4v4,
+        'duels': fig_duels,
+        'sumo_duel': fig_sumo_duel,
+        'classic_duel': fig_classic_duel,
+        'skywars': fig_skywars,
+        'combined': fig_combined,
+        'sumo_winstreak': sumo_winstreak_text,
+        'classic_winstreak': classic_winstreak_text,
+    }
+
+    return figures_data, "Données récupérées et graphiques mis à jour.", {'display': 'block'}, None
+
+
+@app.callback(
+    [Output('stats-graph', 'figure'), Output('winstreak-info', 'children')],
+    [Input('mode-dropdown', 'value')],
+    [State('figures-store', 'data')]
+)
+def display_selected_graph(mode, data):
+    if not data or mode not in data:
+        raise PreventUpdate
+
+    figure = data.get(mode)
+    winstreak = None
+    if mode == 'sumo_duel':
+        winstreak = data.get('sumo_winstreak')
+    elif mode == 'classic_duel':
+        winstreak = data.get('classic_winstreak')
+
+    return figure, winstreak
