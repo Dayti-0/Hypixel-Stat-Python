@@ -86,7 +86,11 @@ app.layout = dbc.Container([
                                     "Obtenir une clé",
                                     href="https://developer.hypixel.net/dashboard",
                                     target="_blank",
+
                                     color="secondary",
+
+                                    color="secondary"
+ main
                                 ),
                             ],
                             className="d-flex mb-3"
