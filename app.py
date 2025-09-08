@@ -72,10 +72,10 @@ app.layout = dbc.Container([
                         id="api-link-button",
                         href="https://developer.hypixel.net/dashboard",
                         target="_blank",
-                        color="secondary",
+                        color="primary",
                         className="mb-3 ms-2",
                         style={"display": "none"}
-                    ),
+                    )
                 ],
                 className="d-flex"
             ),
@@ -86,13 +86,21 @@ app.layout = dbc.Container([
                         dcc.Input(id='usernames-input', value='', type='text', className="form-control", style={'marginBottom': '10px'}),
                         html.Label("Clé API Hypixel:"),
                         html.Div(
-                            dcc.Input(
-                                id="api-key-input",
-                                value=DEFAULT_API_KEY,
-                                type="text",
-                                className="form-control"
-                            ),
-                            className="mb-3"
+                            [
+                                dcc.Input(
+                                    id="api-key-input",
+                                    value=DEFAULT_API_KEY,
+                                    type="text",
+                                    className="form-control me-2"
+                                ),
+                                dbc.Button(
+                                    "Obtenir une clé",
+                                    href="https://developer.hypixel.net/dashboard",
+                                    target="_blank",
+                                    color="primary"
+                                ),
+                            ],
+                            className="d-flex mb-3"
                         ),
                         dbc.Button('Obtenir les statistiques', id='fetch-button', color="primary", className="btn-block"),
                         html.Div(id='result', className="alert alert-info mt-4", style={'display': 'none'}),
