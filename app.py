@@ -62,7 +62,7 @@ app.layout = dbc.Container([
                 dbc.Button(
                     "Paramètres",
                     id="collapse-button",
-                    color="primary",
+                    color="secondary",
                     n_clicks=0,
                     className="mb-3"
                 ),
@@ -86,7 +86,7 @@ app.layout = dbc.Container([
                                     "Obtenir une clé",
                                     href="https://developer.hypixel.net/dashboard",
                                     target="_blank",
-                                    color="primary"
+                                    color="secondary"
                                 ),
                             ],
                             className="d-flex mb-3"
