@@ -19,6 +19,7 @@ DEFAULT_API_KEY = os.getenv('HYPIXEL_API_KEY', '')
 # Créer l'application Dash avec le thème Bootstrap
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
+
 app.layout = html.Div([
     html.Div(
         dbc.Nav(
@@ -80,6 +81,74 @@ app.layout = html.Div([
                             color="secondary",
                             className="mb-3 ms-2",
                             style={"display": "none"},
+
+app.layout = dbc.Container([
+    dcc.Store(id='figures-store'),
+    dbc.Row([
+        dbc.Col([
+            html.H1("Tableau de bord des statistiques Hypixel", className="text-center mb-4")
+        ], width=12)
+    ]),
+
+    dbc.Row([
+        dbc.Col([
+            dcc.Dropdown(
+                id='mode-dropdown',
+                options=[
+                    {'label': 'Bedwars Stats', 'value': 'bedwars'},
+                    {'label': 'Bedwars 4v4 Stats', 'value': 'bedwars_4v4'},
+                    {'label': 'Skywars Stats', 'value': 'skywars'},
+                    {'label': 'Duels Stats', 'value': 'duels'},
+                    {'label': 'Sumo Duel Stats', 'value': 'sumo_duel'},
+                    {'label': 'Classic Duel Stats', 'value': 'classic_duel'},
+                    {'label': 'Statistiques Combinées', 'value': 'combined'},
+                ],
+                value='bedwars',
+                clearable=False,
+                className='mb-3'
+            )
+        ], className='sidebar'),
+        dbc.Col([
+            dcc.Graph(id='stats-graph'),
+            html.Div(id='winstreak-info', className='mt-4')
+        ])
+    ]),
+
+    dbc.Row([
+        dbc.Col([
+            html.Div(
+                [
+                    dbc.Button(
+                        "Paramètres",
+                        id="collapse-button",
+                        color="primary",
+                        n_clicks=0,
+                        className="mb-3",
+                    ),
+                    dbc.Button(
+                        "Obtenir une clé",
+                        id="api-link-button",
+                        href="https://developer.hypixel.net/dashboard",
+                        target="_blank",
+                        color="secondary",
+                        className="mb-3 ms-2",
+                        style={"display": "none"},
+                    ),
+                ],
+                className="d-flex",
+            ),
+            dbc.Collapse(
+                dbc.Card([
+                    dbc.CardBody([
+                        html.Label("Noms d'utilisateurs Minecraft (séparés par des virgules):"),
+                        dcc.Input(id='usernames-input', value='', type='text', className="form-control", style={'marginBottom': '10px'}),
+                        html.Label("Clé API Hypixel:"),
+                        dcc.Input(
+                            id="api-key-input",
+                            value=DEFAULT_API_KEY,
+                            type="text",
+                            className="form-control mb-3",
+main
                         ),
                     ],
                     className="d-flex",
@@ -114,6 +183,7 @@ app.layout = html.Div([
 ])
 
 @app.callback(
+
     [Output('content-bedwars', 'style'),
      Output('content-bedwars4v4', 'style'),
      Output('content-duels', 'style'),
@@ -169,6 +239,8 @@ def display_content(n1, n2, n3, n4, n5, n6, n7):
     return styles + actives
 
 @app.callback(
+
+main
     [Output("collapse", "is_open"), Output("api-link-button", "style")],
     [Input("collapse-button", "n_clicks")],
     [State("collapse", "is_open")]
@@ -181,15 +253,7 @@ def toggle_collapse(n, is_open):
     return is_open, {"display": "none"}
 
 @app.callback(
-    [Output('bedwars-graph', 'figure'),
-     Output('bedwars-4v4-graph', 'figure'),
-     Output('duels-graph', 'figure'),
-     Output('sumo-duel-graph', 'figure'),
-     Output('classic-duel-graph', 'figure'),
-     Output('skywars-graph', 'figure'),
-     Output('combined-graph', 'figure'),
-     Output('sumo-winstreak', 'children'),
-     Output('classic-winstreak', 'children'),
+    [Output('figures-store', 'data'),
      Output('result', 'children'),
      Output('result', 'style'),
      Output('loading-output', 'children')],
@@ -202,7 +266,7 @@ def update_graphs(n_clicks, usernames, api_key):
         raise PreventUpdate
 
     usernames_list = [username.strip() for username in usernames.split(',') if username.strip()]
-    
+
     players_data = {}
     errors = []
 
@@ -214,12 +278,12 @@ def update_graphs(n_clicks, usernames, api_key):
             errors.append(f"{username}: Aucune donnée trouvée")
         else:
             players_data[player.get('displayname', username)] = player
-    
+
     if errors:
-        return [dash.no_update] * 9 + ["\n".join(errors), {'display': 'block'}, None]
+        return dash.no_update, "\n".join(errors), {'display': 'block'}, None
 
     if not players_data:
-        return [dash.no_update] * 9 + ["Aucune donnée valide trouvée pour les joueurs spécifiés.", {'display': 'block'}, None]
+        return dash.no_update, "Aucune donnée valide trouvée pour les joueurs spécifiés.", {'display': 'block'}, None
 
     historical_data = {}
     for username, player in players_data.items():
@@ -229,9 +293,45 @@ def update_graphs(n_clicks, usernames, api_key):
             historical_data[username] = history['data']
 
     fig_bedwars, fig_bedwars_4v4, fig_duels, fig_sumo_duel, fig_classic_duel, fig_skywars, fig_combined, winstreaks_text = create_figures(players_data, historical_data)
-    
+
     # Mise à jour du texte des winstreaks avec le format désiré
     sumo_winstreak_text = "Meilleur Winstreak Sumo : " + " --- ".join([f"{user} : {winstreaks_text[user]['sumo']}" for user in winstreaks_text])
     classic_winstreak_text = "Meilleur Winstreak Classic : " + " --- ".join([f"{user} : {winstreaks_text[user]['classic']}" for user in winstreaks_text])
+
     return fig_bedwars, fig_bedwars_4v4, fig_duels, fig_sumo_duel, fig_classic_duel, fig_skywars, fig_combined, sumo_winstreak_text, classic_winstreak_text, "Données récupérées et graphiques mis à jour.", {'display': 'block'}, None
 
+
+
+    figures_data = {
+        'bedwars': fig_bedwars,
+        'bedwars_4v4': fig_bedwars_4v4,
+        'duels': fig_duels,
+        'sumo_duel': fig_sumo_duel,
+        'classic_duel': fig_classic_duel,
+        'skywars': fig_skywars,
+        'combined': fig_combined,
+        'sumo_winstreak': sumo_winstreak_text,
+        'classic_winstreak': classic_winstreak_text,
+    }
+
+    return figures_data, "Données récupérées et graphiques mis à jour.", {'display': 'block'}, None
+
+
+@app.callback(
+    [Output('stats-graph', 'figure'), Output('winstreak-info', 'children')],
+    [Input('mode-dropdown', 'value')],
+    [State('figures-store', 'data')]
+)
+def display_selected_graph(mode, data):
+    if not data or mode not in data:
+        raise PreventUpdate
+
+    figure = data.get(mode)
+    winstreak = None
+    if mode == 'sumo_duel':
+        winstreak = data.get('sumo_winstreak')
+    elif mode == 'classic_duel':
+        winstreak = data.get('classic_winstreak')
+
+    return figure, winstreak
+main
