@@ -2,56 +2,20 @@ import dash
 from dash import dcc, html
 import plotly.graph_objects as go
 from dash.dependencies import Input, Output, State
-import requests
-import json
 import os
 import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
 import pandas as pd
-from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import webbrowser  # Importez le module webbrowser
+
+from api import get_uuid, get_hypixel_stats, get_player_history
 
 # Charger les variables d'environnement
 load_dotenv()
 
 # Utiliser la variable d'environnement pour la clé API
 DEFAULT_API_KEY = os.getenv('HYPIXEL_API_KEY', '')
-
-# Fonction pour obtenir l'UUID Minecraft
-def get_uuid(username):
-    response = requests.get(f"https://api.mojang.com/users/profiles/minecraft/{username}")
-    if response.status_code == 200:
-        return json.loads(response.text).get("id")
-    return None
-
-# Fonction pour obtenir les statistiques Hypixel
-def get_hypixel_stats(api_key, username):
-    uuid = get_uuid(username)
-    if not uuid:
-        return None, f"Joueur Minecraft non trouvé : {username}"
-    
-    response = requests.get(f"https://api.hypixel.net/player?key={api_key}&uuid={uuid}")
-    data = json.loads(response.text)
-    
-    if not data["success"]:
-        return None, data.get("cause", "Erreur inconnue")
-    
-    player_data = data.get("player")
-    if player_data:
-        player_data['uuid'] = uuid  # Ajouter l'UUID aux données du joueur
-    return player_data, None
-
-# Nouvelle fonction pour récupérer l'historique des statistiques
-def get_player_history(api_key, uuid, stat_type, time_period):
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=time_period)
-    
-    url = f"https://api.hypixel.net/player/statistics?key={api_key}&uuid={uuid}&type={stat_type}&startDate={start_date.isoformat()}&endDate={end_date.isoformat()}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        return json.loads(response.text)
-    return None
 
 # Fonction pour obtenir les statistiques détaillées des duels
 def get_duel_stats(player_data, duel_type):
