@@ -19,38 +19,32 @@ DEFAULT_API_KEY = os.getenv('HYPIXEL_API_KEY', '')
 # Créer l'application Dash avec le thème Bootstrap
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
+MODES = [
+    ('Bedwars Stats', 'bedwars'),
+    ('Bedwars 4v4 Stats', 'bedwars_4v4'),
+    ('Skywars Stats', 'skywars'),
+    ('Duels Stats', 'duels'),
+    ('Sumo Duel Stats', 'sumo_duel'),
+    ('Classic Duel Stats', 'classic_duel'),
+    ('Statistiques Combinées', 'combined'),
+]
 app.layout = dbc.Container([
     dcc.Store(id='figures-store'),
+    html.Div([
+        dbc.Button(label, id=f'mode-{value}', color='secondary', className='menu-button')
+        for label, value in MODES
+    ], className='sidebar'),
     dbc.Row([
         dbc.Col([
             html.H1("Tableau de bord des statistiques Hypixel", className="text-center mb-4")
         ], width=12)
     ]),
-
     dbc.Row([
-        dbc.Col([
-            dcc.Dropdown(
-                id='mode-dropdown',
-                options=[
-                    {'label': 'Bedwars Stats', 'value': 'bedwars'},
-                    {'label': 'Bedwars 4v4 Stats', 'value': 'bedwars_4v4'},
-                    {'label': 'Skywars Stats', 'value': 'skywars'},
-                    {'label': 'Duels Stats', 'value': 'duels'},
-                    {'label': 'Sumo Duel Stats', 'value': 'sumo_duel'},
-                    {'label': 'Classic Duel Stats', 'value': 'classic_duel'},
-                    {'label': 'Statistiques Combinées', 'value': 'combined'},
-                ],
-                value='bedwars',
-                clearable=False,
-                className='mb-3'
-            )
-        ], className='sidebar'),
         dbc.Col([
             dcc.Graph(id='stats-graph'),
             html.Div(id='winstreak-info', className='mt-4')
-        ])
+        ], width=12, className='content')
     ]),
-
     dbc.Row([
         dbc.Col([
             html.Div(
@@ -177,14 +171,24 @@ def update_graphs(n_clicks, usernames, api_key):
 
 @app.callback(
     [Output('stats-graph', 'figure'), Output('winstreak-info', 'children')],
-    [Input('mode-dropdown', 'value')],
+    [Input(f'mode-{value}', 'n_clicks') for _, value in MODES],
     [State('figures-store', 'data')]
 )
-def display_selected_graph(mode, data):
-    if not data or mode not in data:
+def display_selected_graph(*mode_clicks, data):
+    if not data:
         raise PreventUpdate
 
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        mode = 'bedwars'
+    else:
+        triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        mode = triggered_id.replace('mode-', '')
+
     figure = data.get(mode)
+    if not figure:
+        raise PreventUpdate
+
     winstreak = None
     if mode == 'sumo_duel':
         winstreak = data.get('sumo_winstreak')

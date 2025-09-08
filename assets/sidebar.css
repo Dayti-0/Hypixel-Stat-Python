@@ -1,0 +1,22 @@
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 200px;
+    background-color: #2c3e50;
+    transform: translateX(-190px);
+    transition: transform 0.3s ease, width 0.3s ease;
+    z-index: 1000;
+    padding: 10px;
+}
+
+.sidebar:hover {
+    transform: translateX(0);
+}
+
+.sidebar .menu-button {
+    display: block;
+    width: 100%;
+    margin-bottom: 10px;
+}
