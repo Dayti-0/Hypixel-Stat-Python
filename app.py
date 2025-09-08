@@ -59,24 +59,13 @@ app.layout = dbc.Container([
     dbc.Row([
         dbc.Col([
             html.Div(
-                [
-                    dbc.Button(
-                        "Paramètres",
-                        id="collapse-button",
-                        color="primary",
-                        n_clicks=0,
-                        className="mb-3"
-                    ),
-                    dbc.Button(
-                        "Obtenir une clé",
-                        id="api-link-button",
-                        href="https://developer.hypixel.net/dashboard",
-                        target="_blank",
-                        color="secondary",
-                        className="mb-3 ms-2",
-                        style={"display": "none"}
-                    ),
-                ],
+                dbc.Button(
+                    "Paramètres",
+                    id="collapse-button",
+                    color="primary",
+                    n_clicks=0,
+                    className="mb-3"
+                ),
                 className="d-flex"
             ),
             dbc.Collapse(
@@ -86,13 +75,21 @@ app.layout = dbc.Container([
                         dcc.Input(id='usernames-input', value='', type='text', className="form-control", style={'marginBottom': '10px'}),
                         html.Label("Clé API Hypixel:"),
                         html.Div(
-                            dcc.Input(
-                                id="api-key-input",
-                                value=DEFAULT_API_KEY,
-                                type="text",
-                                className="form-control"
-                            ),
-                            className="mb-3"
+                            [
+                                dcc.Input(
+                                    id="api-key-input",
+                                    value=DEFAULT_API_KEY,
+                                    type="text",
+                                    className="form-control me-2"
+                                ),
+                                dbc.Button(
+                                    "Obtenir une clé",
+                                    href="https://developer.hypixel.net/dashboard",
+                                    target="_blank",
+                                    color="secondary"
+                                ),
+                            ],
+                            className="d-flex mb-3"
                         ),
                         dbc.Button('Obtenir les statistiques', id='fetch-button', color="primary", className="btn-block"),
                         html.Div(id='result', className="alert alert-info mt-4", style={'display': 'none'}),
@@ -111,17 +108,14 @@ app.layout = dbc.Container([
 ], fluid=True)
 
 @app.callback(
-    [Output("collapse", "is_open"),
-     Output("api-link-button", "style")],
+    Output("collapse", "is_open"),
     [Input("collapse-button", "n_clicks")],
     [State("collapse", "is_open")]
 )
 def toggle_collapse(n, is_open):
     if n:
-        new_is_open = not is_open
-        style = {"display": "inline-block"} if new_is_open else {"display": "none"}
-        return new_is_open, style
-    return is_open, {"display": "none"}
+        return not is_open
+    return is_open
 
 @app.callback(
     [Output('bedwars-graph', 'figure'),
