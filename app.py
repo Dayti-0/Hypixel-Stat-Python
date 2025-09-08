@@ -6,7 +6,6 @@ import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
 import pandas as pd
 from dotenv import load_dotenv
-import webbrowser  # Importez le module webbrowser
 
 from api import get_uuid, get_hypixel_stats, get_player_history
 from stats import get_duel_stats, create_figures
@@ -148,13 +147,4 @@ def update_graphs(n_clicks, usernames, api_key):
     # Mise à jour du texte des winstreaks avec le format désiré
     sumo_winstreak_text = "Meilleur Winstreak Sumo : " + " --- ".join([f"{user} : {winstreaks_text[user]['sumo']}" for user in winstreaks_text])
     classic_winstreak_text = "Meilleur Winstreak Classic : " + " --- ".join([f"{user} : {winstreaks_text[user]['classic']}" for user in winstreaks_text])
-    
     return fig_bedwars, fig_bedwars_4v4, fig_duels, fig_sumo_duel, fig_classic_duel, fig_skywars, fig_combined, sumo_winstreak_text, classic_winstreak_text, "Données récupérées et graphiques mis à jour.", {'display': 'block'}, None
-
-if __name__ == '__main__':
-    # Ouvrir le lien dans le navigateur une seule fois
-    webbrowser.open("http://127.0.0.1:8050/")
-    
-    # Démarrer le serveur Dash sans recharger automatiquement
-    app.run_server(debug=True, use_reloader=False)
-
