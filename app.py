@@ -1,222 +1,322 @@
+import os
+
 import dash
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
-import os
-import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
-import pandas as pd
+import dash_bootstrap_components as dbc
 from dotenv import load_dotenv
 
-from api import get_uuid, get_hypixel_stats, get_player_history
-from stats import get_duel_stats, create_figures
+from api import get_hypixel_stats, get_player_history
+from stats import create_figures
+from config.game_modes import GAME_MODES
+from config.theme import CHART_LAYOUT
+from components import (
+    create_sidebar,
+    create_header,
+    create_stats_cards,
+    create_empty_state,
+    create_settings_panel,
+)
+from components.header import create_player_info, create_mode_indicator
+from components.settings_panel import create_error_message, create_success_message
 
-# Charger les variables d'environnement
+# Load environment variables
 load_dotenv()
-
-# Utiliser la variable d'environnement pour la clé API
 DEFAULT_API_KEY = os.getenv('HYPIXEL_API_KEY', '')
 
-# Créer l'application Dash avec le thème Bootstrap
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+# Create Dash application
+app = dash.Dash(
+    __name__,
+    external_stylesheets=[dbc.themes.BOOTSTRAP],
+    suppress_callback_exceptions=True,
+)
 
-app.layout = dbc.Container([
-    dcc.Store(id='figures-store'),
-    dcc.Store(id='mode-store', data='bedwars'),
-    html.Div(
-        id='side-menu',
-        children=[
-            html.Div('Bedwars Stats', id='bedwars-item', className='menu-item', n_clicks=0),
-            html.Div('Bedwars 4v4 Stats', id='bedwars_4v4-item', className='menu-item', n_clicks=0),
-            html.Div('Skywars Stats', id='skywars-item', className='menu-item', n_clicks=0),
-            html.Div('Duels Stats', id='duels-item', className='menu-item', n_clicks=0),
-            html.Div('Sumo Duel Stats', id='sumo_duel-item', className='menu-item', n_clicks=0),
-            html.Div('Classic Duel Stats', id='classic_duel-item', className='menu-item', n_clicks=0),
-            html.Div('Statistiques Combinées', id='combined-item', className='menu-item', n_clicks=0),
-        ],
-    ),
-    html.Div([
-        dbc.Row([
-            dbc.Col([
-                html.H1("Tableau de bord des statistiques Hypixel", className="text-center mb-4")
-            ], width=12)
-        ]),
+# Application layout
+app.layout = html.Div(
+    [
+        # Data stores
+        dcc.Store(id='figures-store'),
+        dcc.Store(id='players-store'),
+        dcc.Store(id='mode-store', data='bedwars'),
 
-        dbc.Row([
-            dbc.Col([
-                dcc.Graph(id='stats-graph'),
-                html.Div(id='winstreak-info', className='mt-4')
-            ], width=12)
-        ]),
+        # Sidebar navigation
+        create_sidebar(),
 
-        dbc.Row([
-            dbc.Col([
+        # Main content area
+        html.Div(
+            [
+                create_header(),
+                create_settings_panel(DEFAULT_API_KEY),
+                html.Div(id='mode-indicator'),
+                html.Div(id='stats-cards', children=create_empty_state()),
                 html.Div(
                     [
-                        dbc.Button(
-                            "Paramètres",
-                            id="collapse-button",
-                            color="primary",
-                            n_clicks=0,
-                            className="mb-3",
-                        ),
-                        dbc.Button(
-                            "Obtenir une clé",
-                            id="api-link-button",
-                            href="https://developer.hypixel.net/dashboard",
-                            target="_blank",
-                            color="secondary",
-                            className="mb-3 ms-2",
-                            style={"display": "none"},
+                        dcc.Graph(
+                            id='stats-graph',
+                            config={'displayModeBar': False},
+                            style={'height': '400px'},
                         ),
                     ],
-                    className="d-flex",
+                    id='chart-container',
+                    className='chart-container',
+                    style={'display': 'none'},
                 ),
-                dbc.Collapse(
-                    dbc.Card([
-                        dbc.CardBody([
-                            html.Label("Noms d'utilisateurs Minecraft (séparés par des virgules):"),
-                            dcc.Input(id='usernames-input', value='', type='text', className="form-control", style={'marginBottom': '10px'}),
-                            html.Label("Clé API Hypixel:"),
-                            dcc.Input(
-                                id="api-key-input",
-                                value=DEFAULT_API_KEY,
-                                type="text",
-                                className="form-control mb-3",
-                            ),
-                            dbc.Button('Obtenir les statistiques', id='fetch-button', color="primary", className="btn-block"),
-                            html.Div(id='result', className="alert alert-info mt-4", style={'display': 'none'}),
-                            dcc.Loading(
-                                id="loading",
-                                type="default",
-                                children=html.Div(id="loading-output")
-                            )
-                        ])
-                    ]),
-                    id="collapse",
-                    is_open=False,
-                )
-            ], width=12)
-        ])
-    ], className='content')
-], fluid=True)
-
-@app.callback(
-    [Output("collapse", "is_open"), Output("api-link-button", "style")],
-    [Input("collapse-button", "n_clicks")],
-    [State("collapse", "is_open")]
+                html.Div(id='winstreak-info', className='winstreak-info'),
+            ],
+            className='main-content',
+        ),
+    ],
 )
-def toggle_collapse(n, is_open):
-    if n:
-        new_is_open = not is_open
-        style = {"display": "inline-block"} if new_is_open else {"display": "none"}
-        return new_is_open, style
-    return is_open, {"display": "none"}
 
+
+# Callback: Toggle settings panel
 @app.callback(
-    [Output('figures-store', 'data'),
-     Output('result', 'children'),
-     Output('result', 'style'),
-     Output('loading-output', 'children')],
-    [Input('fetch-button', 'n_clicks')],
-    [State('usernames-input', 'value'),
-     State('api-key-input', 'value')]
+    Output('settings-collapse', 'is_open'),
+    Input('settings-toggle', 'n_clicks'),
+    State('settings-collapse', 'is_open'),
+    prevent_initial_call=True,
 )
-def update_graphs(n_clicks, usernames, api_key):
+def toggle_settings(n_clicks, is_open):
+    if n_clicks:
+        return not is_open
+    return is_open
+
+
+# Callback: Update mode from sidebar
+@app.callback(
+    Output('mode-store', 'data'),
+    [Input(f'{mode_id}-item', 'n_clicks') for mode_id in GAME_MODES.keys()],
+    prevent_initial_call=True,
+)
+def update_mode(*args):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+
+    triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    mode_id = triggered_id.replace('-item', '')
+
+    if mode_id in GAME_MODES:
+        return mode_id
+
+    raise PreventUpdate
+
+
+# Callback: Fetch player data
+@app.callback(
+    [
+        Output('figures-store', 'data'),
+        Output('players-store', 'data'),
+        Output('result-message', 'children'),
+        Output('loading-output', 'children'),
+    ],
+    Input('fetch-button', 'n_clicks'),
+    [
+        State('usernames-input', 'value'),
+        State('api-key-input', 'value'),
+    ],
+    prevent_initial_call=True,
+)
+def fetch_player_data(n_clicks, usernames, api_key):
     if not n_clicks:
         raise PreventUpdate
 
-    usernames_list = [username.strip() for username in usernames.split(',') if username.strip()]
+    if not usernames or not usernames.strip():
+        return dash.no_update, dash.no_update, create_error_message('Veuillez entrer au moins un nom de joueur.'), None
 
+    if not api_key or not api_key.strip():
+        return dash.no_update, dash.no_update, create_error_message('Veuillez entrer votre clé API Hypixel.'), None
+
+    usernames_list = [u.strip() for u in usernames.split(',') if u.strip()]
     players_data = {}
     errors = []
 
     for username in usernames_list:
         player, error = get_hypixel_stats(api_key, username)
         if error:
-            errors.append(f"{username}: {error}")
+            errors.append(f'{username}: {error}')
         elif not player:
-            errors.append(f"{username}: Aucune donnée trouvée")
+            errors.append(f'{username}: Aucune donnée trouvée')
         else:
             players_data[player.get('displayname', username)] = player
 
-    if errors:
-        return dash.no_update, "\n".join(errors), {'display': 'block'}, None
+    if errors and not players_data:
+        return dash.no_update, dash.no_update, create_error_message(' | '.join(errors)), None
 
     if not players_data:
-        return dash.no_update, "Aucune donnée valide trouvée pour les joueurs spécifiés.", {'display': 'block'}, None
+        return dash.no_update, dash.no_update, create_error_message('Aucune donnée valide trouvée.'), None
 
+    # Fetch historical data
     historical_data = {}
     for username, player in players_data.items():
-        uuid = player['uuid']
-        history = get_player_history(api_key, uuid, 'BEDWARS', 30)  # Example period for historical data
-        if history:
-            historical_data[username] = history['data']
+        uuid = player.get('uuid')
+        if uuid:
+            history = get_player_history(api_key, uuid, 'BEDWARS', 30)
+            if history:
+                historical_data[username] = history.get('data')
 
-    fig_bedwars, fig_bedwars_4v4, fig_duels, fig_sumo_duel, fig_classic_duel, fig_skywars, fig_combined, winstreaks_text = create_figures(players_data, historical_data)
+    # Create figures
+    figures = create_figures(players_data, historical_data)
 
-    # Mise à jour du texte des winstreaks avec le format désiré
-    sumo_winstreak_text = "Meilleur Winstreak Sumo : " + " --- ".join([f"{user} : {winstreaks_text[user]['sumo']}" for user in winstreaks_text])
-    classic_winstreak_text = "Meilleur Winstreak Classic : " + " --- ".join([f"{user} : {winstreaks_text[user]['classic']}" for user in winstreaks_text])
-
+    # Prepare figures data for storage
     figures_data = {
-        'bedwars': fig_bedwars,
-        'bedwars_4v4': fig_bedwars_4v4,
-        'duels': fig_duels,
-        'sumo_duel': fig_sumo_duel,
-        'classic_duel': fig_classic_duel,
-        'skywars': fig_skywars,
-        'combined': fig_combined,
-        'sumo_winstreak': sumo_winstreak_text,
-        'classic_winstreak': classic_winstreak_text,
+        'bedwars': figures[0],
+        'bedwars_4v4': figures[1],
+        'duels': figures[2],
+        'sumo_duel': figures[3],
+        'classic_duel': figures[4],
+        'skywars': figures[5],
+        'combined': figures[6],
+        'winstreaks': figures[7],
     }
 
-    return figures_data, "Données récupérées et graphiques mis à jour.", {'display': 'block'}, None
+    # Prepare players data for storage (simplified)
+    players_store = {
+        username: {
+            'displayname': player.get('displayname', username),
+            'uuid': player.get('uuid'),
+            'stats': player.get('stats', {}),
+        }
+        for username, player in players_data.items()
+    }
+
+    message = create_success_message(f'Données chargées pour {len(players_data)} joueur(s).')
+    if errors:
+        message = html.Div([
+            create_success_message(f'Données chargées pour {len(players_data)} joueur(s).'),
+            create_error_message(' | '.join(errors)),
+        ])
+
+    return figures_data, players_store, message, None
 
 
+# Callback: Update display based on mode and data
 @app.callback(
-    Output('mode-store', 'data'),
     [
-        Input('bedwars-item', 'n_clicks'),
-        Input('bedwars_4v4-item', 'n_clicks'),
-        Input('skywars-item', 'n_clicks'),
-        Input('duels-item', 'n_clicks'),
-        Input('sumo_duel-item', 'n_clicks'),
-        Input('classic_duel-item', 'n_clicks'),
-        Input('combined-item', 'n_clicks'),
+        Output('stats-cards', 'children'),
+        Output('stats-graph', 'figure'),
+        Output('chart-container', 'style'),
+        Output('mode-indicator', 'children'),
+        Output('winstreak-info', 'children'),
+        Output('player-info', 'children'),
     ],
-    prevent_initial_call=True
+    [
+        Input('mode-store', 'data'),
+        Input('players-store', 'data'),
+    ],
+    State('figures-store', 'data'),
 )
-def update_mode(*args):
-    ctx = dash.callback_context
-    if not ctx.triggered:
-        raise PreventUpdate
-    triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
-    mapping = {
-        'bedwars-item': 'bedwars',
-        'bedwars_4v4-item': 'bedwars_4v4',
-        'skywars-item': 'skywars',
-        'duels-item': 'duels',
-        'sumo_duel-item': 'sumo_duel',
-        'classic_duel-item': 'classic_duel',
-        'combined-item': 'combined',
+def update_display(mode, players_data, figures_data):
+    # Default empty figure
+    empty_figure = {
+        'data': [],
+        'layout': {
+            **CHART_LAYOUT,
+            'xaxis': {'visible': False},
+            'yaxis': {'visible': False},
+            'annotations': [{
+                'text': 'Aucune donnée disponible',
+                'xref': 'paper',
+                'yref': 'paper',
+                'showarrow': False,
+                'font': {'size': 16, 'color': '#718096'},
+            }],
+        },
     }
-    return mapping.get(triggered_id, dash.no_update)
+
+    # If no data, show empty state
+    if not players_data or not figures_data:
+        return (
+            create_empty_state(),
+            empty_figure,
+            {'display': 'none'},
+            None,
+            None,
+            None,
+        )
+
+    # Create stats cards
+    stats_cards = create_stats_cards(players_data, mode)
+
+    # Get figure for current mode
+    figure = figures_data.get(mode, empty_figure)
+    if figure:
+        # Apply dark theme to figure
+        if isinstance(figure, dict) and 'layout' in figure:
+            figure['layout'].update(CHART_LAYOUT)
+
+    # Create mode indicator
+    mode_indicator = create_mode_indicator(mode)
+
+    # Create player info badges
+    player_info = create_player_info(players_data)
+
+    # Handle winstreak display
+    winstreak_content = None
+    winstreaks = figures_data.get('winstreaks', {})
+
+    if mode == 'sumo_duel' and winstreaks:
+        winstreak_items = []
+        for username, ws_data in winstreaks.items():
+            sumo_ws = ws_data.get('sumo', 0)
+            winstreak_items.append(
+                html.Div(
+                    [
+                        html.Span('🔥', className='winstreak-icon'),
+                        html.Span(f'{username}:', className='winstreak-label'),
+                        html.Span(str(sumo_ws), className='winstreak-value'),
+                    ],
+                    className='winstreak-badge',
+                )
+            )
+        if winstreak_items:
+            winstreak_content = html.Div(
+                [html.Span('Meilleur Winstreak Sumo', style={'marginRight': '15px', 'color': '#718096'})] + winstreak_items,
+                style={'display': 'flex', 'alignItems': 'center', 'flexWrap': 'wrap', 'gap': '10px'},
+            )
+
+    elif mode == 'classic_duel' and winstreaks:
+        winstreak_items = []
+        for username, ws_data in winstreaks.items():
+            classic_ws = ws_data.get('classic', 0)
+            winstreak_items.append(
+                html.Div(
+                    [
+                        html.Span('🔥', className='winstreak-icon'),
+                        html.Span(f'{username}:', className='winstreak-label'),
+                        html.Span(str(classic_ws), className='winstreak-value'),
+                    ],
+                    className='winstreak-badge',
+                )
+            )
+        if winstreak_items:
+            winstreak_content = html.Div(
+                [html.Span('Meilleur Winstreak Classic', style={'marginRight': '15px', 'color': '#718096'})] + winstreak_items,
+                style={'display': 'flex', 'alignItems': 'center', 'flexWrap': 'wrap', 'gap': '10px'},
+            )
+
+    return (
+        stats_cards,
+        figure if figure else empty_figure,
+        {'display': 'block'},
+        mode_indicator,
+        winstreak_content,
+        player_info,
+    )
 
 
+# Callback: Highlight active menu item
 @app.callback(
-    [Output('stats-graph', 'figure'), Output('winstreak-info', 'children')],
-    [Input('mode-store', 'data')],
-    [State('figures-store', 'data')]
+    [Output(f'{mode_id}-item', 'className') for mode_id in GAME_MODES.keys()],
+    Input('mode-store', 'data'),
 )
-def display_selected_graph(mode, data):
-    if not data or mode not in data:
-        raise PreventUpdate
+def update_active_menu(current_mode):
+    return [
+        'menu-item active' if mode_id == current_mode else 'menu-item'
+        for mode_id in GAME_MODES.keys()
+    ]
 
-    figure = data.get(mode)
-    winstreak = None
-    if mode == 'sumo_duel':
-        winstreak = data.get('sumo_winstreak')
-    elif mode == 'classic_duel':
-        winstreak = data.get('classic_winstreak')
 
-    return figure, winstreak
+if __name__ == '__main__':
+    app.run_server(debug=True)
