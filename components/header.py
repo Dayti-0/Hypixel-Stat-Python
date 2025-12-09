@@ -47,6 +47,17 @@ def create_player_info(players_data):
 
 def create_mode_indicator(mode_id):
     """Create an indicator showing the current game mode."""
+    # Handle combined mode separately
+    if mode_id == 'combined':
+        return html.Div(
+            [
+                html.Span('📊', className='mode-icon'),
+                html.Span('Stats Combinées', className='mode-name'),
+            ],
+            className='current-mode',
+            style={'borderColor': '#6366f1'},
+        )
+
     config = GAME_MODES.get(mode_id, {})
 
     return html.Div(

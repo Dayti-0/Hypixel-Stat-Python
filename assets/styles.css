@@ -73,6 +73,135 @@ body {
     opacity: 1;
 }
 
+/* ---------- Menu Sections ---------- */
+.menu-sections {
+    flex: 1;
+    padding: 10px 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.menu-section {
+    margin-bottom: 2px;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    margin: 2px 8px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    border-left: 3px solid transparent;
+    background: rgba(26, 26, 46, 0.5);
+}
+
+.section-header:hover {
+    background: rgba(99, 102, 241, 0.2);
+}
+
+.section-header.active {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+}
+
+.section-icon {
+    font-size: 18px;
+    width: 35px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.section-label {
+    margin-left: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    flex: 1;
+}
+
+.section-arrow {
+    font-size: 10px;
+    opacity: 0;
+    transition: all 0.2s ease;
+    transform: rotate(-90deg);
+}
+
+.section-header.expanded .section-arrow {
+    transform: rotate(0deg);
+}
+
+.sidebar:hover .section-label,
+.sidebar:hover .section-arrow {
+    opacity: 1;
+}
+
+/* ---------- Submodes Container ---------- */
+.submodes-container {
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    margin-left: 15px;
+    padding-left: 5px;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.submode-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    margin: 2px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.submode-item:hover {
+    background: rgba(99, 102, 241, 0.15);
+}
+
+.submode-item.active {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.4) 0%, rgba(139, 92, 246, 0.4) 100%);
+}
+
+.submode-icon {
+    font-size: 14px;
+    width: 30px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.submode-label {
+    margin-left: 6px;
+    font-size: 13px;
+    font-weight: 400;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    color: #a0aec0;
+}
+
+.submode-item.active .submode-label {
+    color: #ffffff;
+    font-weight: 500;
+}
+
+.sidebar:hover .submode-label {
+    opacity: 1;
+}
+
+/* ---------- Combined Stats Item ---------- */
+.combined-item {
+    background: rgba(99, 102, 241, 0.1);
+    border-left: 3px solid #6366f1;
+}
+
+.combined-item:hover {
+    background: rgba(99, 102, 241, 0.25);
+}
+
+/* Legacy menu styles (kept for compatibility) */
 .menu-items {
     flex: 1;
     padding: 15px 0;

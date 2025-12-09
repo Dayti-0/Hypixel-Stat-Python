@@ -2,14 +2,14 @@ import os
 
 import dash
 from dash import dcc, html
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output, State, ALL
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 from dotenv import load_dotenv
 
 from api import get_hypixel_stats, get_player_history
 from stats import create_figures
-from config.game_modes import GAME_MODES
+from config.game_modes import GAME_MODES, MENU_SECTIONS
 from config.theme import CHART_LAYOUT
 from components import (
     create_sidebar,
@@ -20,6 +20,7 @@ from components import (
 )
 from components.header import create_player_info, create_mode_indicator
 from components.settings_panel import create_error_message, create_success_message
+from components.sidebar import get_all_mode_ids, get_section_ids
 
 # Load environment variables
 load_dotenv()
@@ -38,7 +39,8 @@ app.layout = html.Div(
         # Data stores
         dcc.Store(id='figures-store'),
         dcc.Store(id='players-store'),
-        dcc.Store(id='mode-store', data='bedwars'),
+        dcc.Store(id='mode-store', data='duels_general'),
+        dcc.Store(id='expanded-sections-store', data=[]),
 
         # Sidebar navigation
         create_sidebar(),
@@ -83,10 +85,55 @@ def toggle_settings(n_clicks, is_open):
     return is_open
 
 
-# Callback: Update mode from sidebar
+# Callback: Toggle section expand/collapse
+@app.callback(
+    [Output(f'{section_id}-submodes', 'style') for section_id in MENU_SECTIONS.keys()] +
+    [Output(f'{section_id}-header', 'className') for section_id in MENU_SECTIONS.keys()],
+    [Input(f'{section_id}-header', 'n_clicks') for section_id in MENU_SECTIONS.keys()],
+    [State(f'{section_id}-submodes', 'style') for section_id in MENU_SECTIONS.keys()],
+    prevent_initial_call=True,
+)
+def toggle_sections(*args):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+
+    n_sections = len(MENU_SECTIONS)
+    clicks = args[:n_sections]
+    current_styles = args[n_sections:]
+
+    triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    # Create output lists
+    new_styles = []
+    new_classes = []
+
+    for i, section_id in enumerate(MENU_SECTIONS.keys()):
+        header_id = f'{section_id}-header'
+        current_style = current_styles[i] or {}
+        is_visible = current_style.get('display') != 'none'
+
+        if header_id == triggered_id:
+            # Toggle this section
+            if is_visible:
+                new_styles.append({'display': 'none'})
+                new_classes.append('section-header')
+            else:
+                new_styles.append({'display': 'block'})
+                new_classes.append('section-header expanded')
+        else:
+            # Keep current state
+            new_styles.append(current_style)
+            new_classes.append('section-header expanded' if is_visible else 'section-header')
+
+    return new_styles + new_classes
+
+
+# Callback: Update mode from sidebar submodes or combined
 @app.callback(
     Output('mode-store', 'data'),
-    [Input(f'{mode_id}-item', 'n_clicks') for mode_id in GAME_MODES.keys()],
+    [Input(f'{mode_id}-item', 'n_clicks') for mode_id in GAME_MODES.keys()] +
+    [Input('combined-item', 'n_clicks')],
     prevent_initial_call=True,
 )
 def update_mode(*args):
@@ -97,7 +144,7 @@ def update_mode(*args):
     triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
     mode_id = triggered_id.replace('-item', '')
 
-    if mode_id in GAME_MODES:
+    if mode_id in GAME_MODES or mode_id == 'combined':
         return mode_id
 
     raise PreventUpdate
@@ -159,18 +206,6 @@ def fetch_player_data(n_clicks, usernames, api_key):
     # Create figures
     figures = create_figures(players_data, historical_data)
 
-    # Prepare figures data for storage
-    figures_data = {
-        'bedwars': figures[0],
-        'bedwars_4v4': figures[1],
-        'duels': figures[2],
-        'sumo_duel': figures[3],
-        'classic_duel': figures[4],
-        'skywars': figures[5],
-        'combined': figures[6],
-        'winstreaks': figures[7],
-    }
-
     # Prepare players data for storage (simplified)
     players_store = {
         username: {
@@ -188,7 +223,7 @@ def fetch_player_data(n_clicks, usernames, api_key):
             create_error_message(' | '.join(errors)),
         ])
 
-    return figures_data, players_store, message, None
+    return figures, players_store, message, None
 
 
 # Callback: Update display based on mode and data
@@ -252,47 +287,45 @@ def update_display(mode, players_data, figures_data):
     # Create player info badges
     player_info = create_player_info(players_data)
 
-    # Handle winstreak display
+    # Handle winstreak display for duel modes
     winstreak_content = None
     winstreaks = figures_data.get('winstreaks', {})
 
-    if mode == 'sumo_duel' and winstreaks:
-        winstreak_items = []
-        for username, ws_data in winstreaks.items():
-            sumo_ws = ws_data.get('sumo', 0)
-            winstreak_items.append(
-                html.Div(
-                    [
-                        html.Span('🔥', className='winstreak-icon'),
-                        html.Span(f'{username}:', className='winstreak-label'),
-                        html.Span(str(sumo_ws), className='winstreak-value'),
-                    ],
-                    className='winstreak-badge',
-                )
-            )
-        if winstreak_items:
-            winstreak_content = html.Div(
-                [html.Span('Meilleur Winstreak Sumo', style={'marginRight': '15px', 'color': '#718096'})] + winstreak_items,
-                style={'display': 'flex', 'alignItems': 'center', 'flexWrap': 'wrap', 'gap': '10px'},
-            )
+    # Map mode IDs to winstreak keys
+    winstreak_mode_map = {
+        'sumo_duel': 'sumo',
+        'classic_duel': 'classic',
+        'op_duel': 'op',
+        'uhc_duel': 'uhc',
+        'bridge_duel': 'bridge',
+        'skywars_duel': 'skywars',
+        'blitz_duel': 'blitz',
+        'bow_duel': 'bow',
+        'boxing_duel': 'boxing',
+        'combo_duel': 'combo',
+        'nodebuff_duel': 'nodebuff',
+    }
 
-    elif mode == 'classic_duel' and winstreaks:
+    if mode in winstreak_mode_map and winstreaks:
+        ws_key = winstreak_mode_map[mode]
         winstreak_items = []
         for username, ws_data in winstreaks.items():
-            classic_ws = ws_data.get('classic', 0)
-            winstreak_items.append(
-                html.Div(
-                    [
-                        html.Span('🔥', className='winstreak-icon'),
-                        html.Span(f'{username}:', className='winstreak-label'),
-                        html.Span(str(classic_ws), className='winstreak-value'),
-                    ],
-                    className='winstreak-badge',
+            ws_value = ws_data.get(ws_key, 0)
+            if ws_value > 0:
+                winstreak_items.append(
+                    html.Div(
+                        [
+                            html.Span('🔥', className='winstreak-icon'),
+                            html.Span(f'{username}:', className='winstreak-label'),
+                            html.Span(str(ws_value), className='winstreak-value'),
+                        ],
+                        className='winstreak-badge',
+                    )
                 )
-            )
         if winstreak_items:
+            mode_name = GAME_MODES.get(mode, {}).get('name', mode)
             winstreak_content = html.Div(
-                [html.Span('Meilleur Winstreak Classic', style={'marginRight': '15px', 'color': '#718096'})] + winstreak_items,
+                [html.Span(f'Meilleur Winstreak {mode_name}', style={'marginRight': '15px', 'color': '#718096'})] + winstreak_items,
                 style={'display': 'flex', 'alignItems': 'center', 'flexWrap': 'wrap', 'gap': '10px'},
             )
 
@@ -306,16 +339,27 @@ def update_display(mode, players_data, figures_data):
     )
 
 
-# Callback: Highlight active menu item
+# Callback: Highlight active submode item
 @app.callback(
-    [Output(f'{mode_id}-item', 'className') for mode_id in GAME_MODES.keys()],
+    [Output(f'{mode_id}-item', 'className') for mode_id in GAME_MODES.keys()] +
+    [Output('combined-item', 'className')],
     Input('mode-store', 'data'),
 )
 def update_active_menu(current_mode):
-    return [
-        'menu-item active' if mode_id == current_mode else 'menu-item'
-        for mode_id in GAME_MODES.keys()
-    ]
+    classes = []
+    for mode_id in GAME_MODES.keys():
+        if mode_id == current_mode:
+            classes.append('submode-item active')
+        else:
+            classes.append('submode-item')
+
+    # Combined item
+    if current_mode == 'combined':
+        classes.append('section-header combined-item active')
+    else:
+        classes.append('section-header combined-item')
+
+    return classes
 
 
 if __name__ == '__main__':

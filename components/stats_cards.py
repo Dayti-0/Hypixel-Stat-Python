@@ -5,14 +5,17 @@ from config.theme import THEME
 
 def create_stats_cards(players_data, mode_id):
     """Create stat cards for the selected game mode."""
-    if not players_data or mode_id not in GAME_MODES:
+    if not players_data:
+        return create_empty_state()
+
+    # Handle combined mode separately
+    if mode_id == 'combined':
+        return create_combined_cards(players_data)
+
+    if mode_id not in GAME_MODES:
         return create_empty_state()
 
     config = GAME_MODES[mode_id]
-
-    # For combined stats, show aggregated view
-    if config.get('is_combined'):
-        return create_combined_cards(players_data)
 
     cards = []
 

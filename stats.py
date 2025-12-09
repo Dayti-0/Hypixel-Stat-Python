@@ -1,28 +1,28 @@
 import plotly.graph_objects as go
 from config.theme import CHART_COLORS, CHART_LAYOUT
+from config.game_modes import GAME_MODES, safe_divide
 
 
-def get_duel_stats(player_data, duel_type):
-    """Extract statistics for a specific duel type from player data."""
-    if not player_data or "stats" not in player_data or "Duels" not in player_data["stats"]:
-        return {}
+def get_nested_value(data, key_path, default=0):
+    """Get a value from nested dictionary using dot notation."""
+    if not data:
+        return default
+    keys = key_path.split('.')
+    value = data
+    for key in keys:
+        if isinstance(value, dict):
+            value = value.get(key, default)
+        else:
+            return default
+    return value if value is not None else default
 
-    duels = player_data["stats"]["Duels"]
 
-    duel_keys = {
-        "SUMO": "sumo_duel",
-        "CLASSIC": "classic_duel"
-    }
-
-    key = duel_keys.get(duel_type.upper())
-    if key:
-        return {
-            'wins': duels.get(f'{key}_wins', 0),
-            'games_played': duels.get(f'{key}_rounds_played', 0),
-            'kills': duels.get(f'{key}_kills', 0),
-            'deaths': duels.get(f'{key}_deaths', 0)
-        }
-    return {}
+def get_stat_value(game_stats, stat_config):
+    """Get a stat value from game stats based on configuration."""
+    key = stat_config.get('key', '')
+    if '.' in key:
+        return get_nested_value(game_stats, key, 0)
+    return game_stats.get(key, 0)
 
 
 def apply_dark_theme(fig, title):
@@ -67,159 +67,107 @@ def apply_dark_theme(fig, title):
     return fig
 
 
-def create_figures(players_data, historical_data):
-    """Create all chart figures for the dashboard."""
-    fig_bedwars = go.Figure()
-    fig_bedwars_4v4 = go.Figure()
-    fig_duels = go.Figure()
-    fig_sumo_duel = go.Figure()
-    fig_classic_duel = go.Figure()
-    fig_skywars = go.Figure()
-    fig_combined = go.Figure()
-
-    winstreaks_text = {}
+def create_figure_for_mode(mode_id, mode_config, players_data):
+    """Create a figure for a specific game mode."""
+    fig = go.Figure()
+    api_key = mode_config.get('api_key', '')
+    stats_config = mode_config.get('stats', [])
 
     for i, (username, player) in enumerate(players_data.items()):
         color = CHART_COLORS[i % len(CHART_COLORS)]
 
-        # Initialize default stats
-        bedwars = {}
-        duels = {}
-        skywars = {}
+        # Get game stats from player data
+        game_stats = {}
+        if 'stats' in player and api_key in player['stats']:
+            game_stats = player['stats'][api_key]
 
-        # Bedwars stats
-        if "stats" in player and "Bedwars" in player["stats"]:
-            bedwars = player["stats"]["Bedwars"]
+        # Check if we have any stats
+        if not game_stats and not stats_config:
+            continue
 
-            fig_bedwars.add_trace(go.Bar(
-                x=['Victoires', 'Parties', 'Éliminations', 'Morts', 'Lits'],
-                y=[
-                    bedwars.get('wins_bedwars', 0),
-                    bedwars.get('games_played_bedwars', 0),
-                    bedwars.get('kills_bedwars', 0),
-                    bedwars.get('deaths_bedwars', 0),
-                    bedwars.get('beds_broken_bedwars', 0)
-                ],
+        # Build x and y values from stats config
+        x_values = []
+        y_values = []
+
+        for stat in stats_config:
+            label = stat.get('label', stat.get('key', ''))
+            value = get_stat_value(game_stats, stat)
+            x_values.append(label)
+            y_values.append(value)
+
+        if x_values:
+            fig.add_trace(go.Bar(
+                x=x_values,
+                y=y_values,
                 name=username,
                 marker_color=color,
                 marker_line_width=0,
                 hovertemplate='<b>%{x}</b><br>%{y:,}<extra></extra>',
             ))
 
-            fig_bedwars_4v4.add_trace(go.Bar(
-                x=['Victoires', 'Parties', 'Éliminations', 'Morts', 'Lits'],
-                y=[
-                    bedwars.get('two_four_wins_bedwars', 0),
-                    bedwars.get('two_four_games_played_bedwars', 0),
-                    bedwars.get('two_four_kills_bedwars', 0),
-                    bedwars.get('two_four_deaths_bedwars', 0),
-                    bedwars.get('two_four_beds_broken_bedwars', 0)
-                ],
-                name=username,
-                marker_color=color,
-                marker_line_width=0,
-                hovertemplate='<b>%{x}</b><br>%{y:,}<extra></extra>',
-            ))
+    title = f"Statistiques {mode_config.get('name', mode_id)}"
+    apply_dark_theme(fig, title)
+    return fig
 
-        # Duels stats
-        if "stats" in player and "Duels" in player["stats"]:
-            duels = player["stats"]["Duels"]
 
-            fig_duels.add_trace(go.Bar(
-                x=['Victoires', 'Parties', 'Éliminations', 'Morts'],
-                y=[
-                    duels.get('wins', 0),
-                    duels.get('rounds_played', 0),
-                    duels.get('kills', 0),
-                    duels.get('deaths', 0)
-                ],
-                name=username,
-                marker_color=color,
-                marker_line_width=0,
-                hovertemplate='<b>%{x}</b><br>%{y:,}<extra></extra>',
-            ))
+def create_combined_figure(players_data):
+    """Create a combined stats figure."""
+    fig = go.Figure()
 
-            # Store winstreaks
-            winstreaks_text[username] = {
-                'classic': duels.get('best_classic_winstreak', 0),
-                'sumo': duels.get('best_sumo_winstreak', 0)
-            }
+    for i, (username, player) in enumerate(players_data.items()):
+        color = CHART_COLORS[i % len(CHART_COLORS)]
 
-            # Sumo Duel stats
-            sumo_stats = get_duel_stats(player, "SUMO")
-            if sumo_stats:
-                fig_sumo_duel.add_trace(go.Bar(
-                    x=['Victoires', 'Parties', 'Éliminations', 'Morts'],
-                    y=[
-                        sumo_stats.get('wins', 0),
-                        sumo_stats.get('games_played', 0),
-                        sumo_stats.get('kills', 0),
-                        sumo_stats.get('deaths', 0)
-                    ],
-                    name=username,
-                    marker_color=color,
-                    marker_line_width=0,
-                    hovertemplate='<b>%{x}</b><br>%{y:,}<extra></extra>',
-                ))
+        # Collect wins from all game types
+        combined_wins = 0
+        combined_games = 0
+        combined_kills = 0
+        combined_deaths = 0
 
-            # Classic Duel stats
-            classic_stats = get_duel_stats(player, "CLASSIC")
-            if classic_stats:
-                fig_classic_duel.add_trace(go.Bar(
-                    x=['Victoires', 'Parties', 'Éliminations', 'Morts'],
-                    y=[
-                        classic_stats.get('wins', 0),
-                        classic_stats.get('games_played', 0),
-                        classic_stats.get('kills', 0),
-                        classic_stats.get('deaths', 0)
-                    ],
-                    name=username,
-                    marker_color=color,
-                    marker_line_width=0,
-                    hovertemplate='<b>%{x}</b><br>%{y:,}<extra></extra>',
-                ))
+        stats = player.get('stats', {})
 
-        # Skywars stats
-        if "stats" in player and "SkyWars" in player["stats"]:
-            skywars = player["stats"]["SkyWars"]
+        # Bedwars
+        if 'Bedwars' in stats:
+            bedwars = stats['Bedwars']
+            combined_wins += bedwars.get('wins_bedwars', 0)
+            combined_games += bedwars.get('games_played_bedwars', 0)
+            combined_kills += bedwars.get('kills_bedwars', 0)
+            combined_deaths += bedwars.get('deaths_bedwars', 0)
 
-            fig_skywars.add_trace(go.Bar(
-                x=['Victoires', 'Parties', 'Éliminations', 'Morts'],
-                y=[
-                    skywars.get('wins', 0),
-                    skywars.get('games_played_skywars', 0),
-                    skywars.get('kills', 0),
-                    skywars.get('deaths', 0)
-                ],
-                name=username,
-                marker_color=color,
-                marker_line_width=0,
-                hovertemplate='<b>%{x}</b><br>%{y:,}<extra></extra>',
-            ))
+        # Duels
+        if 'Duels' in stats:
+            duels = stats['Duels']
+            combined_wins += duels.get('wins', 0)
+            combined_games += duels.get('rounds_played', 0)
+            combined_kills += duels.get('kills', 0)
+            combined_deaths += duels.get('deaths', 0)
 
-        # Combined stats
-        combined_wins = (
-            bedwars.get('wins_bedwars', 0) +
-            duels.get('wins', 0) +
-            skywars.get('wins', 0)
-        )
-        combined_games = (
-            bedwars.get('games_played_bedwars', 0) +
-            duels.get('rounds_played', 0) +
-            skywars.get('games_played_skywars', 0)
-        )
-        combined_kills = (
-            bedwars.get('kills_bedwars', 0) +
-            duels.get('kills', 0) +
-            skywars.get('kills', 0)
-        )
-        combined_deaths = (
-            bedwars.get('deaths_bedwars', 0) +
-            duels.get('deaths', 0) +
-            skywars.get('deaths', 0)
-        )
+        # SkyWars
+        if 'SkyWars' in stats:
+            skywars = stats['SkyWars']
+            combined_wins += skywars.get('wins', 0)
+            combined_games += skywars.get('games_played_skywars', 0)
+            combined_kills += skywars.get('kills', 0)
+            combined_deaths += skywars.get('deaths', 0)
 
-        fig_combined.add_trace(go.Bar(
+        # Arcade
+        if 'Arcade' in stats:
+            arcade = stats['Arcade']
+            combined_wins += arcade.get('wins', 0)
+
+        # Murder Mystery
+        if 'MurderMystery' in stats:
+            mm = stats['MurderMystery']
+            combined_wins += mm.get('wins', 0)
+            combined_games += mm.get('games', 0)
+            combined_kills += mm.get('kills', 0)
+            combined_deaths += mm.get('deaths', 0)
+
+        # TNT Games
+        if 'TNTGames' in stats:
+            tnt = stats['TNTGames']
+            combined_wins += tnt.get('wins', 0)
+
+        fig.add_trace(go.Bar(
             x=['Victoires', 'Parties', 'Éliminations', 'Morts'],
             y=[combined_wins, combined_games, combined_kills, combined_deaths],
             name=username,
@@ -228,22 +176,48 @@ def create_figures(players_data, historical_data):
             hovertemplate='<b>%{x}</b><br>%{y:,}<extra></extra>',
         ))
 
-    # Apply dark theme to all figures
-    apply_dark_theme(fig_bedwars, "Statistiques Bedwars")
-    apply_dark_theme(fig_bedwars_4v4, "Statistiques Bedwars 4v4")
-    apply_dark_theme(fig_duels, "Statistiques Duels")
-    apply_dark_theme(fig_sumo_duel, "Statistiques Sumo Duel")
-    apply_dark_theme(fig_classic_duel, "Statistiques Classic Duel")
-    apply_dark_theme(fig_skywars, "Statistiques Skywars")
-    apply_dark_theme(fig_combined, "Statistiques Combinées")
+    apply_dark_theme(fig, "Statistiques Combinées")
+    return fig
 
-    return (
-        fig_bedwars,
-        fig_bedwars_4v4,
-        fig_duels,
-        fig_sumo_duel,
-        fig_classic_duel,
-        fig_skywars,
-        fig_combined,
-        winstreaks_text
-    )
+
+def extract_winstreaks(players_data):
+    """Extract winstreak data for all players."""
+    winstreaks = {}
+
+    for username, player in players_data.items():
+        stats = player.get('stats', {})
+        duels = stats.get('Duels', {})
+
+        if duels:
+            winstreaks[username] = {
+                'classic': duels.get('best_classic_winstreak', 0),
+                'sumo': duels.get('best_sumo_winstreak', 0),
+                'op': duels.get('best_op_winstreak', 0),
+                'uhc': duels.get('best_uhc_winstreak', 0),
+                'bridge': duels.get('best_bridge_winstreak', 0),
+                'skywars': duels.get('best_skywars_winstreak', 0),
+                'blitz': duels.get('best_blitz_winstreak', 0),
+                'bow': duels.get('best_bow_winstreak', 0),
+                'boxing': duels.get('current_boxing_winstreak', 0),
+                'combo': duels.get('best_combo_winstreak', 0),
+                'nodebuff': duels.get('best_nodebuff_winstreak', 0),
+            }
+
+    return winstreaks
+
+
+def create_figures(players_data, historical_data=None):
+    """Create all chart figures for the dashboard."""
+    figures_data = {}
+
+    # Generate figures for all game modes
+    for mode_id, mode_config in GAME_MODES.items():
+        figures_data[mode_id] = create_figure_for_mode(mode_id, mode_config, players_data)
+
+    # Add combined figure
+    figures_data['combined'] = create_combined_figure(players_data)
+
+    # Extract winstreaks
+    figures_data['winstreaks'] = extract_winstreaks(players_data)
+
+    return figures_data
