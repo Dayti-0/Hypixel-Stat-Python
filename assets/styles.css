@@ -117,6 +117,87 @@ body {
     opacity: 1;
 }
 
+/* ---------- Accordion & Submenu ---------- */
+.game-modes-accordion {
+    margin: 0 !important;
+}
+
+.game-modes-accordion .accordion-item {
+    background: transparent !important;
+    border: none !important;
+    margin-bottom: 8px;
+}
+
+.game-modes-accordion .accordion-button {
+    background: rgba(26, 26, 46, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-radius: 10px !important;
+    color: #a0aec0 !important;
+    padding: 12px 15px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+}
+
+.game-modes-accordion .accordion-button:not(.collapsed) {
+    background: rgba(99, 102, 241, 0.15) !important;
+    border-color: rgba(99, 102, 241, 0.3) !important;
+    color: #ffffff !important;
+}
+
+.game-modes-accordion .accordion-button:hover {
+    background: rgba(99, 102, 241, 0.2) !important;
+}
+
+.game-modes-accordion .accordion-button:focus {
+    box-shadow: none !important;
+}
+
+.game-modes-accordion .accordion-button::after {
+    filter: brightness(0) invert(0.6);
+}
+
+.game-modes-accordion .accordion-body {
+    background: transparent !important;
+    padding: 5px 5px 10px 10px !important;
+}
+
+.submenu-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.submenu-item {
+    padding: 10px 15px;
+    margin-left: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #8892a8;
+    transition: all 0.2s ease;
+    border-left: 2px solid transparent;
+}
+
+.submenu-item:hover {
+    background: rgba(99, 102, 241, 0.1);
+    color: #a0aec0;
+    border-left-color: rgba(99, 102, 241, 0.5);
+}
+
+.submenu-item.active {
+    background: rgba(99, 102, 241, 0.2);
+    color: #ffffff;
+    border-left-color: #6366f1;
+    font-weight: 500;
+}
+
+.combined-menu-item {
+    margin-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 15px;
+}
+
 /* ---------- Main Content ---------- */
 .main-content {
     margin-left: 70px;
@@ -523,8 +604,14 @@ body {
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
-    padding: 20px;
-    margin-top: 20px;
+    padding: 30px;
+    margin-top: 30px;
+    min-height: 600px;
+}
+
+.chart-container .js-plotly-plot {
+    height: 100% !important;
+    min-height: 550px !important;
 }
 
 .chart-title {
