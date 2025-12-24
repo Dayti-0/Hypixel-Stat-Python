@@ -1,0 +1,12 @@
+# Web Framework
+dash>=2.14.0
+dash-bootstrap-components>=1.5.0
+
+# API Client
+hypixel.py>=0.4.2
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# Data manipulation and visualization
+plotly>=5.18.0

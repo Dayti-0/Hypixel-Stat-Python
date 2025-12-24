@@ -38,7 +38,7 @@ app.layout = html.Div(
         # Data stores
         dcc.Store(id='figures-store'),
         dcc.Store(id='players-store'),
-        dcc.Store(id='mode-store', data='bedwars'),
+        dcc.Store(id='mode-store', data='bedwars_overall'),
 
         # Sidebar navigation
         create_sidebar(),
@@ -55,7 +55,7 @@ app.layout = html.Div(
                         dcc.Graph(
                             id='stats-graph',
                             config={'displayModeBar': False},
-                            style={'height': '400px'},
+                            style={'height': '600px'},
                         ),
                     ],
                     id='chart-container',
@@ -156,20 +156,8 @@ def fetch_player_data(n_clicks, usernames, api_key):
             if history:
                 historical_data[username] = history.get('data')
 
-    # Create figures
-    figures = create_figures(players_data, historical_data)
-
-    # Prepare figures data for storage
-    figures_data = {
-        'bedwars': figures[0],
-        'bedwars_4v4': figures[1],
-        'duels': figures[2],
-        'sumo_duel': figures[3],
-        'classic_duel': figures[4],
-        'skywars': figures[5],
-        'combined': figures[6],
-        'winstreaks': figures[7],
-    }
+    # Create figures - now returns a dictionary
+    figures_data = create_figures(players_data, historical_data)
 
     # Prepare players data for storage (simplified)
     players_store = {
@@ -256,7 +244,7 @@ def update_display(mode, players_data, figures_data):
     winstreak_content = None
     winstreaks = figures_data.get('winstreaks', {})
 
-    if mode == 'sumo_duel' and winstreaks:
+    if mode == 'duel_sumo' and winstreaks:
         winstreak_items = []
         for username, ws_data in winstreaks.items():
             sumo_ws = ws_data.get('sumo', 0)
@@ -276,7 +264,7 @@ def update_display(mode, players_data, figures_data):
                 style={'display': 'flex', 'alignItems': 'center', 'flexWrap': 'wrap', 'gap': '10px'},
             )
 
-    elif mode == 'classic_duel' and winstreaks:
+    elif mode == 'duel_classic' and winstreaks:
         winstreak_items = []
         for username, ws_data in winstreaks.items():
             classic_ws = ws_data.get('classic', 0)
@@ -312,10 +300,18 @@ def update_display(mode, players_data, figures_data):
     Input('mode-store', 'data'),
 )
 def update_active_menu(current_mode):
-    return [
-        'menu-item active' if mode_id == current_mode else 'menu-item'
-        for mode_id in GAME_MODES.keys()
-    ]
+    classes = []
+    for mode_id in GAME_MODES.keys():
+        config = GAME_MODES[mode_id]
+        if config.get('is_combined'):
+            # Combined is a top-level menu item
+            base_class = 'menu-item combined-menu-item'
+            classes.append(f'{base_class} active' if mode_id == current_mode else base_class)
+        else:
+            # All other modes are submenu items
+            base_class = 'submenu-item'
+            classes.append(f'{base_class} active' if mode_id == current_mode else base_class)
+    return classes
 
 
 if __name__ == '__main__':

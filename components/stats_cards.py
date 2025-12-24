@@ -23,24 +23,34 @@ def create_stats_cards(players_data, mode_id):
         # Create individual stat items
         stat_items = []
 
-        # Main stats
-        for stat in config.get('stats', [])[:4]:  # Show first 4 stats
-            value = raw_stats.get(stat['key'], 0)
-            stat_items.append(
-                html.Div(
-                    [
-                        html.Span(stat['icon'], className='stat-icon'),
-                        html.Div(
-                            [
-                                html.Span(f'{value:,}', className='stat-value'),
-                                html.Span(stat['label'], className='stat-label'),
-                            ],
-                            className='stat-text',
-                        ),
-                    ],
-                    className='stat-item',
+        # Main stats - dynamically create from available raw_stats
+        stat_keys = [
+            ('wins', 'Victoires', '🏆'),
+            ('games', 'Parties', '🎮'),
+            ('kills', 'Éliminations', '🗡️'),
+            ('deaths', 'Morts', '💀'),
+            ('beds_broken', 'Lits détruits', '🛏️'),
+            ('final_kills', 'Final Kills', '⚡'),
+        ]
+
+        for key, label, icon in stat_keys[:4]:  # Show first 4 available stats
+            if key in raw_stats:
+                value = raw_stats[key]
+                stat_items.append(
+                    html.Div(
+                        [
+                            html.Span(icon, className='stat-icon'),
+                            html.Div(
+                                [
+                                    html.Span(f'{value:,}', className='stat-value'),
+                                    html.Span(label, className='stat-label'),
+                                ],
+                                className='stat-text',
+                            ),
+                        ],
+                        className='stat-item',
+                    )
                 )
-            )
 
         # Computed stats (KDR, Win Rate)
         computed_items = []
