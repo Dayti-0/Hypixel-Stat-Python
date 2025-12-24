@@ -5,7 +5,13 @@ Cette application Dash permet de consulter les statistiques des joueurs sur Hypi
 ## Installation
 
 ```bash
-pip install dash dash-bootstrap-components pandas plotly requests
+pip install -r requirements.txt
+```
+
+Ou installez les dépendances manuellement :
+
+```bash
+pip install dash dash-bootstrap-components plotly python-dotenv hypixel.py
 ```
 
 ## Exécution
