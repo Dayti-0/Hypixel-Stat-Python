@@ -201,7 +201,8 @@ body {
 
 .sidebar:hover .game-modes-accordion .accordion-body {
     opacity: 1;
-    max-height: 500px;
+    max-height: 700px;
+    overflow-y: auto;
 }
 
 .submenu-items {
