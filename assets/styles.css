@@ -103,6 +103,12 @@ body {
     width: 40px;
     text-align: center;
     flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.sidebar:hover .menu-icon {
+    opacity: 1;
 }
 
 .menu-label {
