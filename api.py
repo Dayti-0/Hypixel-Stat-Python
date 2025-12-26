@@ -1,5 +1,22 @@
 import asyncio
-import hypixel
+import sys
+
+try:
+    import hypixel
+except ImportError:
+    print("=" * 60)
+    print("ERREUR: Le module 'hypixel' n'est pas installé.")
+    print()
+    print("Pour installer la bibliothèque requise, exécutez:")
+    print("    pip install hypixel.py")
+    print()
+    print("Si vous avez plusieurs versions de Python, utilisez:")
+    print("    python -m pip install hypixel.py")
+    print()
+    print("Ou avec Python 3 explicitement:")
+    print("    python3 -m pip install hypixel.py")
+    print("=" * 60)
+    sys.exit(1)
 
 
 # Global client instance (will be initialized with API key)
