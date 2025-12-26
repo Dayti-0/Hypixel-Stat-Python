@@ -137,13 +137,6 @@ body {
     font-size: 14px !important;
     font-weight: 500 !important;
     transition: all 0.2s ease !important;
-    white-space: nowrap;
-    overflow: hidden;
-    opacity: 0;
-}
-
-.sidebar:hover .game-modes-accordion .accordion-button {
-    opacity: 1;
 }
 
 .game-modes-accordion .accordion-button:not(.collapsed) {
@@ -184,13 +177,6 @@ body {
     color: #8892a8;
     transition: all 0.2s ease;
     border-left: 2px solid transparent;
-    white-space: nowrap;
-    overflow: hidden;
-    opacity: 0;
-}
-
-.sidebar:hover .submenu-item {
-    opacity: 1;
 }
 
 .submenu-item:hover {
