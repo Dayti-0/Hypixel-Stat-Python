@@ -14,6 +14,12 @@ Ou installez les dépendances manuellement :
 pip install dash dash-bootstrap-components plotly python-dotenv hypixel.py
 ```
 
+**Note importante:** Si vous avez plusieurs versions de Python installées, utilisez `python -m pip` pour vous assurer d'installer dans le bon environnement :
+
+```bash
+python -m pip install -r requirements.txt
+```
+
 ## Exécution
 
 1. Installez les dépendances ci-dessus.
