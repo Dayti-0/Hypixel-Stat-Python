@@ -108,37 +108,37 @@ def _extract_skywars_stats(player):
 
         # Ranked
         'ranked_wins': skywars.ranked.wins,
-        'ranked_games': skywars.ranked.games,
+        'ranked_games': skywars.ranked.wins + skywars.ranked.losses,
         'ranked_kills': skywars.ranked.kills,
         'ranked_deaths': skywars.ranked.deaths,
 
         # Solo Normal
         'solo_normal_wins': skywars.solo_normal.wins,
-        'solo_normal_games': skywars.solo_normal.games,
+        'solo_normal_games': skywars.solo_normal.wins + skywars.solo_normal.losses,
         'solo_normal_kills': skywars.solo_normal.kills,
         'solo_normal_deaths': skywars.solo_normal.deaths,
 
         # Solo Insane
         'solo_insane_wins': skywars.solo_insane.wins,
-        'solo_insane_games': skywars.solo_insane.games,
+        'solo_insane_games': skywars.solo_insane.wins + skywars.solo_insane.losses,
         'solo_insane_kills': skywars.solo_insane.kills,
         'solo_insane_deaths': skywars.solo_insane.deaths,
 
         # Team Normal
         'team_normal_wins': skywars.team_normal.wins,
-        'team_normal_games': skywars.team_normal.games,
+        'team_normal_games': skywars.team_normal.wins + skywars.team_normal.losses,
         'team_normal_kills': skywars.team_normal.kills,
         'team_normal_deaths': skywars.team_normal.deaths,
 
         # Team Insane
         'team_insane_wins': skywars.team_insane.wins,
-        'team_insane_games': skywars.team_insane.games,
+        'team_insane_games': skywars.team_insane.wins + skywars.team_insane.losses,
         'team_insane_kills': skywars.team_insane.kills,
         'team_insane_deaths': skywars.team_insane.deaths,
 
         # Mega (combining mega_normal and mega_doubles)
         'mega_wins': skywars.mega_normal.wins + skywars.mega_doubles.wins,
-        'mega_games': skywars.mega_normal.games + skywars.mega_doubles.games,
+        'mega_games': (skywars.mega_normal.wins + skywars.mega_normal.losses) + (skywars.mega_doubles.wins + skywars.mega_doubles.losses),
         'mega_kills': skywars.mega_normal.kills + skywars.mega_doubles.kills,
         'mega_deaths': skywars.mega_normal.deaths + skywars.mega_doubles.deaths,
     }
