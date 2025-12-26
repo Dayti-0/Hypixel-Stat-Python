@@ -77,6 +77,7 @@ body {
     flex: 1;
     padding: 15px 0;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .menu-item {
@@ -137,6 +138,32 @@ body {
     font-size: 14px !important;
     font-weight: 500 !important;
     transition: all 0.2s ease !important;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.accordion-title {
+    display: flex;
+    align-items: center;
+}
+
+.accordion-icon {
+    font-size: 20px;
+    width: 40px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.accordion-label {
+    margin-left: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.sidebar:hover .accordion-label {
+    opacity: 1;
 }
 
 .game-modes-accordion .accordion-button:not(.collapsed) {
@@ -155,11 +182,26 @@ body {
 
 .game-modes-accordion .accordion-button::after {
     filter: brightness(0) invert(0.6);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.sidebar:hover .game-modes-accordion .accordion-button::after {
+    opacity: 1;
 }
 
 .game-modes-accordion .accordion-body {
     background: transparent !important;
     padding: 5px 5px 10px 10px !important;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: opacity 0.2s ease, max-height 0.3s ease;
+}
+
+.sidebar:hover .game-modes-accordion .accordion-body {
+    opacity: 1;
+    max-height: 500px;
 }
 
 .submenu-items {
@@ -194,6 +236,8 @@ body {
 
 .combined-menu-item {
     margin-top: 15px;
+    margin-left: 0;
+    margin-right: 0;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     padding-top: 15px;
 }
