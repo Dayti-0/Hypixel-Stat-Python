@@ -26,7 +26,10 @@ def create_sidebar():
         accordion_items.append(
             dbc.AccordionItem(
                 html.Div(mode_items, className='submenu-items'),
-                title=f"{category['icon']} {category['name']}",
+                title=html.Div([
+                    html.Span(category['icon'], className='accordion-icon'),
+                    html.Span(category['name'], className='accordion-label'),
+                ], className='accordion-title'),
                 item_id=category_id,
             )
         )
