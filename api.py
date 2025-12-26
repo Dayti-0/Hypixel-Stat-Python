@@ -23,10 +23,10 @@ except ImportError:
 _client = None
 
 
-def init_client(api_key):
+def init_client(api_key, loop=None):
     """Initialize the hypixel.py client with the API key."""
     global _client
-    _client = hypixel.Client(api_key)
+    _client = hypixel.Client(api_key, loop=loop)
 
 
 async def _get_player_async(username):
@@ -185,11 +185,26 @@ def get_hypixel_stats(api_key, username):
     This is a synchronous wrapper around the async hypixel.py library.
     Returns (player_data_dict, error_message).
     """
-    # Initialize client with API key
-    init_client(api_key)
+    # Create a new event loop for this thread (needed for Flask/Dash threads)
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+    except RuntimeError:
+        # No event loop in this thread, create a new one
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    # Initialize client with API key and the event loop
+    init_client(api_key, loop=loop)
 
     # Run async function
-    player, error = asyncio.run(_get_player_async(username))
+    try:
+        player, error = loop.run_until_complete(_get_player_async(username))
+    finally:
+        # Clean up the loop
+        loop.close()
 
     if error:
         return None, f"Erreur API: {error}"
