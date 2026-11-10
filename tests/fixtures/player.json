@@ -1,0 +1,41 @@
+{
+  "uuid": "f7c77d999f154a66a87dc4a51ef30d19",
+  "displayname": "hypixel",
+  "rank": "ADMIN",
+  "newPackageRank": "MVP_PLUS",
+  "networkExp": 1000000,
+  "karma": 123456,
+  "achievementPoints": 4321,
+  "firstLogin": 1356998400000,
+  "lastLogin": 1700000000000,
+  "achievements": {"bedwars_level": 412},
+  "stats": {
+    "Bedwars": {
+      "Experience": 2000000,
+      "wins_bedwars": 900, "losses_bedwars": 300, "games_played_bedwars": 1210,
+      "kills_bedwars": 5000, "deaths_bedwars": 2500,
+      "final_kills_bedwars": 3000, "final_deaths_bedwars": 400,
+      "beds_broken_bedwars": 1800, "beds_lost_bedwars": 360,
+      "winstreak": 12,
+      "eight_one_wins_bedwars": 100, "eight_one_losses_bedwars": 50,
+      "eight_one_final_kills_bedwars": 400, "eight_one_final_deaths_bedwars": 0
+    },
+    "SkyWars": {
+      "levelFormatted": "§b25⋆",
+      "wins": 500, "losses": 1500, "kills": 4000, "deaths": 1600, "games_played_skywars": 2000,
+      "win_streak": 3,
+      "wins_solo": 300, "losses_solo": 900, "kills_solo": 2500, "deaths_solo": 1000,
+      "wins_mega": 5, "wins_mega_doubles": 7, "kills_mega": 10, "kills_mega_doubles": 20
+    },
+    "Duels": {
+      "wins": 2000, "losses": 1000, "kills": 1800, "deaths": 1100, "games_played_duels": 3000,
+      "current_winstreak": 4, "best_overall_winstreak": 40,
+      "uhc_duel_wins": 100, "uhc_doubles_wins": 20, "uhc_four_wins": 5,
+      "uhc_duel_losses": 50,
+      "best_winstreak_mode_uhc_duel": 9, "best_uhc_winstreak": 15,
+      "bridge_duel_wins": 300, "bridge_duel_losses": 100,
+      "bridge_duel_bridge_kills": 900, "bridge_duel_bridge_deaths": 450, "bridge_duel_goals": 600,
+      "mw_duel_wins": 11, "potion_duel_wins": 22, "sw_duel_wins": 33
+    }
+  }
+}
